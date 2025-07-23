@@ -7,8 +7,10 @@ const { generateQuizFromText } = require('./services/aiService');
 dotenv.config();
 
 const app = express();
-// Հեռացրեք CORS սահմանափակումները և օգտագործեք default
-app.use(cors());
+app.use(cors({
+  origin: https://english-quiz-front.vercel.app,
+  credentials: true
+}));
 app.use(express.json());
 app.use(session({
   secret: process.env.SESSION_SECRET || 'secret',
