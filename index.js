@@ -8,7 +8,7 @@ dotenv.config();
 
 const app = express();
 app.use(cors({
-  origin: https://english-quiz-front.vercel.app,
+  origin: /^https:\/\/english-quiz-front\.vercel\.app/,
   credentials: true
 }));
 app.use(express.json());
