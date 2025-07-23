@@ -1,12 +1,14 @@
+// services/aiService.js
 const axios = require('axios');
 require('dotenv').config();
 
 async function generateQuizFromText(text) {
-  // Validate input more thoroughly
+  // ✅ Validate input
   if (!text || typeof text !== 'string' || text.trim().length < 20) {
     throw new Error('Input text must be a meaningful string (at least 20 characters)');
   }
 
+  // ✅ Prompt for the model
   const prompt = `
 Generate 10 quiz questions. For each, pick a difficult English word, and provide:
 - "word": the difficult word,
@@ -29,23 +31,16 @@ Return only valid JSON in this format:
 `;
 
   try {
-    // First verify the API key is present
-    if (!process.env.OPENROUTER_API_KEY) {
-      throw new Error('OpenRouter API key is missing from environment variables');
+    // ✅ Ensure API key is set
+    const apiKey = process.env.OPENROUTER_API_KEY;
+    if (!apiKey) {
+      throw new Error('API key is not configured. Please set OPENROUTER_API_KEY in your .env file.');
     }
 
-    // Test network connectivity first
-    try {
-      await axios.get('https://google.com', { timeout: 5000 });
-    } catch (networkErr) {
-      throw new Error('No internet connectivity available');
-    }
-
-    // Use OpenRouter's chat completion endpoint and a free model
     const response = await axios.post(
       'https://openrouter.ai/api/v1/chat/completions',
       {
-        model: "mistralai/mistral-7b-instruct:free",
+        model: "mistralai/mistral-7b-instruct:free", // կամ այլ անվճար մոդել, եթե սա հասանելի չէ
         messages: [
           { role: "system", content: "You are a precise quiz generator that outputs perfect JSON." },
           { role: "user", content: prompt }
@@ -55,42 +50,46 @@ Return only valid JSON in this format:
       },
       {
         headers: {
-          Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+          Authorization: `Bearer ${apiKey}`,
           'Content-Type': 'application/json'
         },
         timeout: 30000
       }
     );
 
-    // Ավելացրու այս հատվածը
-    const content = response.data.choices[0].message.content;
-    console.log('Model raw content:', content); // Log the model's raw response
+    // ✅ Extract and parse content
+    const content = response.data.choices?.[0]?.message?.content;
+    console.log('Model raw content:\n', content);
 
-    // Փնտրիր առաջին { ... }-ը
     let quizObj;
     try {
       quizObj = JSON.parse(content);
     } catch (e) {
-      // fallback: extract first {...} block if pretty-print fails
-      const match = content.match(/{[\s\S]*}/);
-      if (!match) {
-        throw new Error("No JSON object found in model response");
-      }
+      // fallback: try to extract a valid JSON block manually
+      const match = content?.match(/{[\s\S]*}/);
+      if (!match) throw new Error("No JSON object found in model response");
       quizObj = JSON.parse(match[0]);
     }
+
+    // ✅ Return quiz array
+    if (!quizObj.quiz || !Array.isArray(quizObj.quiz)) {
+      throw new Error('Invalid quiz format returned by model');
+    }
+
     return quizObj.quiz;
 
   } catch (err) {
+    // ✅ Log detailed error info
     console.error('Full error details:', err);
     if (err.response) {
       console.error('OpenRouter error response:', err.response.data);
     }
+
+    // ✅ Handle known error types
     if (err.code === 'ECONNABORTED') {
       throw new Error('API request timed out. Please try again later.');
-    } else if (err.message.includes('No internet connectivity')) {
-      throw new Error('No internet connection available');
-    } else if (!process.env.OPENROUTER_API_KEY) {
-      throw new Error('API key is not configured. Please set OPENROUTER_API_KEY in your .env file.');
+    } else if (err.message.includes('API key')) {
+      throw err;
     } else {
       throw new Error(`Failed to generate quiz: ${err.message}`);
     }
