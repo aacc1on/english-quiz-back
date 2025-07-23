@@ -8,7 +8,7 @@ dotenv.config();
 
 const app = express();
 app.use(cors({
-  origin: /^https:\/\/english-quiz-front\.vercel\.app/,
+  origin: 'https://english-quiz-front.vercel.app', // ✅ string, ոչ regex
   credentials: true
 }));
 app.use(express.json());
@@ -16,6 +16,10 @@ app.use(session({
   secret: process.env.SESSION_SECRET || 'secret',
   resave: false,
   saveUninitialized: false,
+  cookie: {
+    sameSite: 'none', // ✅ for cross-site cookies
+    secure: true      // ✅ cookie only over HTTPS
+  }
 }));
 
 let currentQuiz = null;
