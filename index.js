@@ -177,24 +177,61 @@ app.post('/api/quiz/submit', (req, res) => {
   }
   
   let score = 0;
+  let wrongAnswers = [];
+  let detailedResults = [];
+  
   if (currentQuiz) {
     currentQuiz.forEach((q, i) => {
-      if (answers[i] === q.correct) {
+      const isCorrect = answers[i] === q.correct;
+      if (isCorrect) {
         score++;
         console.log(`[QUIZ_SUBMIT] Question ${i + 1}: CORRECT`);
       } else {
         console.log(`[QUIZ_SUBMIT] Question ${i + 1}: WRONG (answered: ${answers[i]}, correct: ${q.correct})`);
+        wrongAnswers.push({
+          questionNumber: i + 1,
+          question: q.question,
+          word: q.word,
+          correctAnswer: q.correct,
+          userAnswer: answers[i] || 'No answer',
+          options: q.options
+        });
       }
+      
+      // Detailed results for admin
+      detailedResults.push({
+        questionNumber: i + 1,
+        question: q.question,
+        word: q.word,
+        correctAnswer: q.correct,
+        userAnswer: answers[i] || 'No answer',
+        isCorrect: isCorrect,
+        options: q.options
+      });
     });
   }
   
-  const result = { name, surname, score, date: new Date() };
+  const result = { 
+    name, 
+    surname, 
+    score, 
+    total: currentQuiz ? currentQuiz.length : 0,
+    percentage: currentQuiz ? Math.round((score / currentQuiz.length) * 100) : 0,
+    date: new Date(),
+    detailedResults: detailedResults
+  };
   quizResults.push(result);
   
   console.log(`[QUIZ_SUBMIT] ✅ Final score: ${score}/${currentQuiz ? currentQuiz.length : 0}`);
+  console.log(`[QUIZ_SUBMIT] Wrong answers count: ${wrongAnswers.length}`);
   console.log(`[QUIZ_SUBMIT] Total results stored: ${quizResults.length}`);
   
-  res.json({ score, total: currentQuiz ? currentQuiz.length : 0 });
+  res.json({ 
+    score, 
+    total: currentQuiz ? currentQuiz.length : 0,
+    percentage: result.percentage,
+    wrongAnswers: wrongAnswers
+  });
 });
 
 // Admin gets results
