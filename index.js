@@ -28,7 +28,7 @@ app.use(cors({
     const allowedOrigins = [
       'http://localhost:3000',
       'http://127.0.0.1:3000',
-      'https://english-quiz-front.vercel.app'
+      process.env.ALLOWED_ORIGIN
     ];
     
     console.log(`[CORS] Request origin: ${origin}`);
